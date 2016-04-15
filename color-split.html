@@ -1,0 +1,154 @@
+
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>RGB颜色系统</title>
+    <script src="../lib/jquery.js"></script>
+    <style>
+        body{
+            text-align: center;
+        }
+        #options{
+
+        }
+        #options, #box{
+            width:800px;
+            border: 1px solid #dedede;
+            padding: 10px;
+            margin: 10px auto;
+            text-align: left;
+        }
+        #box span{
+            display: inline-block;
+            height: 20px;
+            height: 20px;
+            line-height: 20px;
+            text-align: center;
+        }
+        .keycolor{
+
+        }
+    </style>
+</head>
+<body>
+    <h1>渐变色生成器</h1>
+    <div id="options">
+        <label>keycolors：</label>
+        <div id="keycolors">
+            <!--input class="keycolor" value="#ff0000" type="color" />
+            <input class="keycolor" value="#ffff00" type="color" />
+            <input class="keycolor" value="#ffffff" type="color" />
+            <input class="keycolor" value="#00ffff" type="color" />
+            <input class="keycolor" value="#0000ff" type="color" />
+            <input class="keycolor" value="#000000" type="color" /-->
+        </div>
+        <button id="addkeycolor">添加keycolor</button>
+        <button id="delkeycolor">删除最后一个keycolor</button>
+        <br/><br/>
+        <label for="slice">分片数：</label><input id="slice" value="70" />
+        <button id="createslices">生成渐变颜色片</button>
+    </div>
+    <div id="box"></div>
+</body>
+<script>
+
+    var mcolor = (function(win){
+        var parseRGB2Arr = function(c){
+            var colorstr = (c+'').replace('#','');
+            if(colorstr.length!=6){
+                console.warn('RGB色值必须为6位16进制字符串');
+                return;
+            }
+            var arr = colorstr.split('');
+            var r = parseInt(arr[0]+arr[1],16);
+            var g = parseInt(arr[2]+arr[3],16);
+            var b = parseInt(arr[4]+arr[5],16);
+            return [r,g,b]
+        };
+        var createGradualColors = function(keycolors,levels){
+            var alllevels = parseInt(levels,10);
+            var levels = Math.ceil((alllevels+keycolors.length-1)/(keycolors.length-1));
+            console.log(levels,keycolors,alllevels,(alllevels+keycolors.length-1),(keycolors.length-1));
+            var colors = [];
+            Array.prototype.forEach.call(keycolors,function(color,i){
+                if(i>0){
+                    colors = colors.concat(createGradualColorsBetweenTwoColors(keycolors[i-1],keycolors[i],levels));
+                }
+            });
+            colors.push(keycolors.pop());
+            while(colors.length>alllevels){//移除多出的颜色。。。可以再优化
+                colors[colors.length-2] = colors[colors.length-1];
+                colors.length--;
+            }
+            return colors;
+        }
+        var createGradualColorsBetweenTwoColors = function(startcolor,endcolor,levels){
+            var levels = levels-1;
+            var start = parseRGB2Arr(startcolor);
+            var end = parseRGB2Arr(endcolor);
+            var colorslice = [];//color单片差值
+            var colors = [];
+            Array.prototype.forEach.call(start,function(item,i){
+                colorslice.push((end[i]-start[i])/levels);
+            });
+            var j = 0;
+            while(j<=levels){
+                var color = [];
+                Array.prototype.forEach.call(colorslice,function(item,i){
+                    //console.log(start[i]+j*colorslice[i]);
+                    var v = Number(Math.round(start[i]+j*colorslice[i])).toString(16);
+                    if(v=='')v='00';
+                    if(v.length==1)v = '0'+v;
+                    color.push(v);
+                });
+                var c = '#'+color.join('');
+                colors.push(c);
+                j++;
+            }
+            colors.pop();
+            console.log(colors);
+            return colors;
+        };
+        return {
+            createGradualColors:createGradualColors
+        };
+    })(window);
+    //mcolor.createGradualGrid('#ff0000','#ffff00',30);
+    $(function(){
+        function printColors(colors){
+            $('#box').empty();
+            Array.prototype.forEach.call(colors,function(item,i){
+                $('#box').append('<span style="background: '+item+';width:'+(80)+'px;">'+item+'</span>');
+            });
+
+        }
+        $('#addkeycolor').on('click',function(){
+            $('#keycolors').append('<input class="keycolor" type="color" />');
+        });
+        $('#delkeycolor').on('click',function(){
+            $('#keycolors input').last().remove();
+        });
+
+        $('#createslices').on('click',function(){
+            var keycolors = [];
+            $('#keycolors input').each(function(){
+                keycolors.push($(this).val());
+            });
+            window.colors = mcolor.createGradualColors(keycolors,$('#slice').val());
+            printColors(window.colors);
+        });
+        var defaultkeycolors = ('27408b#283f8c#283f8c#293e8d#2a3d8e#2a3d8e#2b3c8f#2c3b90#2c3b90#2d3a91#2e3992#2e3992#2f3893#303794#303794#313695#323a97#343e99#35439b#36479d#384b9f#394fa1#3a53a3#3c58a6#3d5ca8#3e60aa#4064ac#4168ae#426db0#4575b4' +
+                '#4575b4#4e80ba#588bc0#6197c5#6ba2cb#74add1#7fb6d6#8abfdb#95c7df#a0d0e4#abd9e9#b6deec#c0e3ef#cbe9f2#d5eef5#e0f3f8#e6f5ed#ecf8e1#f3fad6#f9fdca#ffffbf#fff9b6#fff3ac#ffe090' +
+                '#ffe090#ffdd8d#ffda8a#ffd788#ffd485#ffd282#ffcf7f#ffcc7d#ffc97a#ffc677#ffc374#ffc072#ffbd6f#ffbb6c#ffb869#ffb567#ffb264#ffaf61#fea95f#fea35d#fd9e5c#fc985a#fc9258#fb8c56#fa8755#fa8153#f97b51#f9754f#f8704e#f76a4c#f7644a#f65e48#f55947#f55345#f44d43#f24b41#f14a40#ef483e#ed463c#eb443b#ea4339#e84137#e63f36#e53e34#e33c33#e13a31#e0392f#de372e#dc352c#da332a#d93229#d73027#d42d27#d12a27#ce2827#cb2527#c82227#c51f27#c21c27#bf1927#bd1727#ba1427#b71127#b40e27#b10b27#a50027').split('#');
+            
+        //var defaultkeycolors = ["7b0e0d", "ff270e", "ffb900", "f6fb49", "72f927", "00e9bb", "17a9fc", "f6fbf7"];
+
+        var defaultkeycolors =  '324670#75a8d4#a5defa#f7d757#ffaf65#e5763e#d44937'.split('#');
+        Array.prototype.forEach.call(defaultkeycolors,function(item,i){
+            $('#keycolors').append('<input class="keycolor" type="color" value="#'+ item +'" />');
+        });
+        $('#createslices').click();
+    });
+</script>
+</html>
